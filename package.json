@@ -1,6 +1,6 @@
 {
   "name": "wakem-t",
-  "version": "0.1.0",
+  "version": "0.20.0",
   "type": "module",
   "description": "The official wakem ecosystem - TypeScript implementation",
   "main": "dist/index.js",
