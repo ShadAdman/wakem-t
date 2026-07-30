@@ -1,4 +1,5 @@
 import * as path from "path";
+import * as os from "os";
 import { Project, Skill } from "../core/models.js";
 import { StorageService, FileStorageService } from "../storage/StorageService.js";
 
@@ -9,6 +10,14 @@ export interface SkillLoader {
 
 export class SkillLoaderImpl implements SkillLoader {
     private storage: StorageService = new FileStorageService();
+    private wakemDir: string = path.join(os.homedir(), ".wakem");
+
+    private resolvePath(p: string): string {
+        if (path.isAbsolute(p)) {
+            return p;
+        }
+        return path.join(this.wakemDir, p);
+    }
 
     async listSkills(project: Project): Promise<Skill[]> {
         const skills: Skill[] = [];
@@ -18,8 +27,12 @@ export class SkillLoaderImpl implements SkillLoader {
         }
 
         if (project.sourcePath) {
+            // Check .wakem/skills
             const internalPath = path.join(project.sourcePath, ".wakem", "skills");
             skills.push(...(await this.discoverSkillsInPath(internalPath)));
+
+            // Check sourcePath directly for .md files
+            skills.push(...(await this.discoverSkillsInPath(project.sourcePath)));
         }
 
         // De-duplicate by name
@@ -46,8 +59,9 @@ export class SkillLoaderImpl implements SkillLoader {
     }
 
     private async discoverSkillsInPath(dirPath: string): Promise<Skill[]> {
-        if (!(await this.storage.exists(dirPath))) return [];
-        const files = await this.storage.list(dirPath);
+        const resolvedPath = this.resolvePath(dirPath);
+        if (!(await this.storage.exists(resolvedPath))) return [];
+        const files = await this.storage.list(resolvedPath);
         const skills: Skill[] = [];
 
         for (const filePath of files) {
@@ -65,7 +79,8 @@ export class SkillLoaderImpl implements SkillLoader {
     }
 
     private async loadSkillFromPath(dirPath: string, name: string): Promise<Skill | null> {
-        const filePath = path.join(dirPath, `${name}.md`);
+        const resolvedPath = this.resolvePath(dirPath);
+        const filePath = path.join(resolvedPath, `${name}.md`);
         const content = await this.storage.load(filePath);
         if (content === null) return null;
 

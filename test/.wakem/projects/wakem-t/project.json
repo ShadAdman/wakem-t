@@ -1,0 +1,10 @@
+{
+  "id": "wakem-t",
+  "name": "wakem-t",
+  "description": "wakem-t source for testing",
+  "sourcePath": "/home/shad/wakem/wakem-ai/wakem-t",
+  "runtimeType": "Ollama",
+  "targetModels": ["gemma4"],
+  "enablePrediction": false,
+  "lastWarmupTimestamp": 0
+}
