@@ -39,6 +39,36 @@ You don't need to know all four languages to make a meaningful impact!
 
 While we encourage creative solutions, the core logic and public interfaces of the CLI must remain consistent across all implementations. This ensures that a `wakem project create` command behaves exactly the same way whether the user is running the Rust binary or the Node.js package.
 
+## Testing Strategy
+
+To ensure consistency and high quality, we use a unified testing strategy. The `wakem-t` implementation contains a `test/` directory designed for end-to-end and integration testing.
+
+### Test Environment Setup
+
+The `test/` directory simulates a user's environment by providing a local `.wakem` storage:
+- **Path**: `wakem-t/test/.wakem`
+- **Config**: Contains `config.json` with the active project set to `wakem-t`.
+- **Project**: A pre-configured project pointing back to the source root (`../../`) allowing the tool to index its own source as a test subject.
+
+### Verification Workflow
+
+When developing or debugging, you should verify your changes using this local environment. 
+
+1. **Indexing**: The implementation discovers skills directly from the source root (searching for `.md` files).
+2. **Prompts**: Use the standard troubleshooting prompt:
+   > "Ready yourself for troubleshooting and bug-fixing tasks by indexing the core modules."
+3. **Execution**: Run the CLI with the `HOME` environment variable set to the `test` directory:
+   ```bash
+   # Run with node and isolated config
+   HOME=test node dist/index.js skill list
+   ```
+
+### Runtime Requirements
+- **Runtime**: Ollama
+- **Model**: `gemma4`
+
+All contributors are encouraged to run these verification steps before submitting a PR to ensure that core features like skill discovery and project management are functioning correctly.
+
 ---
 
 Thank you for helping us make Wakem better!
