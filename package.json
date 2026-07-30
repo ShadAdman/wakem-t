@@ -1,0 +1,46 @@
+{
+  "name": "wakem-t",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The official wakem ecosystem - TypeScript implementation",
+  "main": "dist/index.js",
+  "bin": {
+    "wakem": "dist/index.js"
+  },
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "test": "jest",
+    "package": "pkg . --out-path bin"
+  },
+  "pkg": {
+    "scripts": [
+      "dist/**/*.js"
+    ],
+    "assets": [
+      "node_modules/ink/**/*",
+      "node_modules/react/**/*"
+    ]
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.2.0",
+    "ink": "^4.4.1",
+    "ink-spinner": "^4.0.3",
+    "ink-text-input": "^5.0.1",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.2.0",
+    "esbuild": "^0.28.1",
+    "jest": "^29.7.0",
+    "pkg": "^5.8.1",
+    "ts-jest": "^29.2.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
+  }
+}
