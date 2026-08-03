@@ -76,6 +76,15 @@ const Dashboard = () => {
         if (input === "q" || input === "Q") {
             exit();
         }
+        if (input === "w" || input === "W") {
+            setStatus("Warm started.");
+        }
+        if (input === "p" || input === "P") {
+            setStatus("Refreshing prompts...");
+        }
+        if (input === "s" || input === "S") {
+            setStatus("Refreshing skills...");
+        }
     });
 
     return (
