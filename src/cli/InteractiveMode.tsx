@@ -81,17 +81,19 @@ const Dashboard = () => {
         loadContext();
     }, []);
 
-    useInput((input: string) => {
-        if (input === "q" || input === "Q") {
+    useInput((input, key) => {
+        const cmd = input.toLowerCase();
+
+        if (cmd === "q" || key.escape) {
             exit();
         }
-        if (input === "w" || input === "W") {
+        if (cmd === "w") {
             setStatus("Warm started.");
         }
-        if (input === "p" || input === "P") {
+        if (cmd === "p") {
             setStatus("Refreshing prompts...");
         }
-        if (input === "s" || input === "S") {
+        if (cmd === "s") {
             setStatus("Refreshing skills...");
         }
     });
@@ -156,6 +158,7 @@ const Dashboard = () => {
     );
 };
 
-export const runInteractiveMode = () => {
-    render(<Dashboard />);
+export const runInteractiveMode = async () => {
+    const { waitUntilExit } = render(<Dashboard />);
+    await waitUntilExit();
 };
