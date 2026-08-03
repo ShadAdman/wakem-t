@@ -26,6 +26,9 @@ const Dashboard = () => {
     const [predictions, setPredictions] = useState([]);
     const [skillCount, setSkillCount] = useState(0);
     const [promptCount, setPromptCount] = useState(0);
+    const [currentView, setCurrentView] = useState("dashboard");
+    const [prompts, setPrompts] = useState([]);
+    const [skills, setSkills] = useState([]);
     useEffect(() => {
         const loadContext = async () => {
             const cs = new ConfigServiceImpl();
@@ -46,23 +49,24 @@ const Dashboard = () => {
                     const installedModels = await runtime.listModels();
                     const missingModels = activeProject.targetModels.filter(target => {
                         const targetLower = target.toLowerCase();
-                        const isInstalled = installedModels.some(installed => {
+                        return !installedModels.some(installed => {
                             const installedLower = installed.toLowerCase();
                             return installedLower === targetLower || installedLower === `${targetLower}:latest`;
                         });
-                        return !isInstalled;
                     });
                     if (missingModels.length > 0) {
                         errorMsg = `Error: Models not installed: ${missingModels.join(", ")}`;
                     }
                 }
                 setStatus("Loading context...");
-                const skills = await sl.listSkills(activeProject);
-                const prompts = await prm.listPrompts(activeProject);
-                setSkillCount(skills.length);
-                setPromptCount(prompts.length);
+                const loadedSkills = await sl.listSkills(activeProject);
+                const loadedPrompts = await prm.listPrompts(activeProject);
+                setSkills(loadedSkills);
+                setPrompts(loadedPrompts);
+                setSkillCount(loadedSkills.length);
+                setPromptCount(loadedPrompts.length);
                 setStatus("Running prediction...");
-                const preds = pe.predictModels({ project: activeProject, skills, prompts });
+                const preds = pe.predictModels({ project: activeProject, skills: loadedSkills, prompts: loadedPrompts });
                 setPredictions(preds);
                 setStatus(errorMsg || "Ready.");
             }
@@ -74,22 +78,58 @@ const Dashboard = () => {
     }, []);
     useInput((input, key) => {
         const cmd = input.toLowerCase();
-        if (cmd === "q" || key.escape) {
+        if (key.escape) {
+            setCurrentView("dashboard");
+            setStatus("Ready.");
+            return;
+        }
+        if (cmd === "q") {
             exit();
+            return;
         }
-        if (cmd === "w") {
-            setStatus("Warm started.");
-        }
-        if (cmd === "p") {
-            setStatus("Refreshing prompts...");
-        }
-        if (cmd === "s") {
-            setStatus("Refreshing skills...");
+        if (currentView === "dashboard") {
+            if (cmd === "w") {
+                if (project) {
+                    const checkAndWarm = async () => {
+                        setStatus("Checking models...");
+                        const cs = new ConfigServiceImpl();
+                        const config = await cs.getConfig();
+                        const runtime = new OllamaRuntime(config.ollamaUrl);
+                        const installedModels = await runtime.listModels();
+                        const missingModels = project.targetModels.filter(target => {
+                            const targetLower = target.toLowerCase();
+                            return !installedModels.some(installed => {
+                                const installedLower = installed.toLowerCase();
+                                return installedLower === targetLower || installedLower === `${targetLower}:latest`;
+                            });
+                        });
+                        if (missingModels.length > 0) {
+                            setStatus(`Error: Models not installed: ${missingModels.join(", ")}`);
+                        }
+                        else {
+                            setStatus("Warm started.");
+                        }
+                    };
+                    checkAndWarm();
+                }
+            }
+            if (cmd === "p") {
+                if (project) {
+                    setCurrentView("prompts");
+                    setStatus("Viewing prompts. ESC to back.");
+                }
+            }
+            if (cmd === "s") {
+                if (project) {
+                    setCurrentView("skills");
+                    setStatus("Viewing skills. ESC to back.");
+                }
+            }
         }
     });
     return (React.createElement(Box, { flexDirection: "column", padding: 1 },
         React.createElement(Header, null),
-        project ? (React.createElement(Box, { flexDirection: "column" },
+        currentView === "dashboard" && (React.createElement(Box, { flexDirection: "column" }, project ? (React.createElement(Box, { flexDirection: "column" },
             React.createElement(InfoRow, { label: "Project", value: project.name }),
             React.createElement(InfoRow, { label: "Runtime", value: `${project.runtimeType} ● ${isHealthy ? "Connected" : "Disconnected"}`, color: isHealthy ? "green" : "red" }),
             project.targetModels.length > 0 && (React.createElement(InfoRow, { label: "Target Models", value: project.targetModels.join(", ") })),
@@ -110,14 +150,28 @@ const Dashboard = () => {
                     React.createElement(InfoRow, { label: "Recent prompts", value: promptCount.toString() })),
                 React.createElement(InfoRow, { label: "Skills loaded", value: skillCount.toString() })))) : (React.createElement(Box, { flexDirection: "column" },
             React.createElement(Text, { color: "yellow" }, "No active project selected."),
-            React.createElement(Text, { dimColor: true }, "Please run: wakem project use <name>"))),
+            React.createElement(Text, { dimColor: true }, "Please run: wakem project use <name>"))))),
+        currentView === "prompts" && (React.createElement(Box, { flexDirection: "column" },
+            React.createElement(Text, { bold: true }, "Prompts"),
+            prompts.length === 0 ? (React.createElement(Text, null, "  No prompts found.")) : (prompts.map((p, i) => (React.createElement(Text, { key: i },
+                "  [",
+                p.id,
+                "] ",
+                p.text)))))),
+        currentView === "skills" && (React.createElement(Box, { flexDirection: "column" },
+            React.createElement(Text, { bold: true }, "Skills"),
+            skills.length === 0 ? (React.createElement(Text, null, "  No skills found.")) : (skills.map((s, i) => (React.createElement(Text, { key: i },
+                "  - ",
+                s.name)))))),
         React.createElement(Box, { marginTop: 1 },
             React.createElement(Text, { color: status === "Ready." ? "green" : undefined },
-                status !== "Ready." && React.createElement(Text, { color: "yellow" }, "\u25CF"),
+                status !== "Ready." && status !== "Viewing prompts. ESC to back." && status !== "Viewing skills. ESC to back." && React.createElement(Text, { color: "yellow" }, "\u25CF"),
                 " ",
                 status)),
         React.createElement(Box, { marginTop: 1 },
-            React.createElement(Text, { dimColor: true }, "[W] Warm model   [P] Prompts   [S] Skills   [Q] Quit"))));
+            React.createElement(Text, { dimColor: true },
+                "[Q] Quit   ",
+                currentView === "dashboard" ? "[W] Warm model   [P] Prompts   [S] Skills" : "[ESC] Back"))));
 };
 export const runInteractiveMode = async () => {
     const { waitUntilExit } = render(React.createElement(Dashboard, null));
