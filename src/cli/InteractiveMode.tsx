@@ -96,7 +96,30 @@ const Dashboard = () => {
             exit();
         }
         if (cmd === "w") {
-            setStatus("Warm started.");
+            if (project) {
+                const checkAndWarm = async () => {
+                    setStatus("Checking models...");
+                    const cs = new ConfigServiceImpl();
+                    const config = await cs.getConfig();
+                    const runtime = new OllamaRuntime(config.ollamaUrl);
+
+                    const installedModels = await runtime.listModels();
+                    const missingModels = project.targetModels.filter(target => {
+                        const targetLower = target.toLowerCase();
+                        return !installedModels.some(installed => {
+                            const installedLower = installed.toLowerCase();
+                            return installedLower === targetLower || installedLower === `${targetLower}:latest`;
+                        });
+                    });
+
+                    if (missingModels.length > 0) {
+                        setStatus(`Error: Models not installed: ${missingModels.join(", ")}`);
+                    } else {
+                        setStatus("Warm started.");
+                    }
+                };
+                checkAndWarm();
+            }
         }
         if (cmd === "p") {
             setStatus("Refreshing prompts...");
