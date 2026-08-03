@@ -53,6 +53,15 @@ const Dashboard = () => {
                 const healthy = await runtime.checkHealth();
                 setIsHealthy(healthy);
 
+                let errorMsg = null;
+                if (healthy) {
+                    const installedModels = await runtime.listModels();
+                    const missingModels = activeProject.targetModels.filter(m => !installedModels.includes(m));
+                    if (missingModels.length > 0) {
+                        errorMsg = `Error: Models not installed: ${missingModels.join(", ")}`;
+                    }
+                }
+
                 setStatus("Loading context...");
                 const skills = await sl.listSkills(activeProject);
                 const prompts = await prm.listPrompts(activeProject);
@@ -63,7 +72,7 @@ const Dashboard = () => {
                 const preds = pe.predictModels({ project: activeProject, skills, prompts });
                 setPredictions(preds);
 
-                setStatus("Ready.");
+                setStatus(errorMsg || "Ready.");
             } else {
                 setStatus("No active project. Use 'wakem project use <name>'.");
             }

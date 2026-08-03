@@ -185,6 +185,14 @@ export const warmHandler = {
         const runtime = new OllamaRuntime(config.ollamaUrl);
         const orchestrator = new WarmupOrchestratorImpl(runtime);
 
+        // Check if models are installed
+        const installedModels = await runtime.listModels();
+        const missingModels = project.targetModels.filter(m => !installedModels.includes(m));
+        if (missingModels.length > 0) {
+            console.log(chalk.red(`Error: The following configured models are not installed in this system: ${missingModels.join(", ")}`));
+            return;
+        }
+
         const plan = {
             id: `warm_${Date.now()}`,
             projectId: project.id,
