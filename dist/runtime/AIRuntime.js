@@ -25,26 +25,32 @@ export class OllamaRuntime {
         return false;
     }
     async listModels() {
+        let models = [];
+        // 1. Try HTTP
         try {
-            const response = await axios.get(`${this.baseUrl}/api/tags`);
-            if (response.status === 200) {
-                return response.data.models.map((m) => m.name);
+            const response = await axios.get(`${this.baseUrl}/api/tags`, { timeout: 2000 });
+            if (response.status === 200 && response.data && Array.isArray(response.data.models)) {
+                models = response.data.models.map((m) => m.name);
             }
         }
         catch (error) {
+            // Fallback to CLI
+        }
+        // 2. Try CLI if HTTP failed or returned nothing
+        if (models.length === 0) {
             try {
                 const { stdout } = await execAsync("ollama list");
-                return stdout
+                models = stdout
                     .split("\n")
                     .slice(1)
                     .filter(line => line.trim().length > 0)
                     .map(line => line.split(/\s+/)[0]);
             }
             catch (cliError) {
-                return [];
+                // Both failed
             }
         }
-        return [];
+        return models;
     }
     async warmup(model, keepAlive = "-1", wait = true) {
         try {

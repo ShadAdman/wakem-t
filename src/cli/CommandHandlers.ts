@@ -187,7 +187,14 @@ export const warmHandler = {
 
         // Check if models are installed
         const installedModels = await runtime.listModels();
-        const missingModels = project.targetModels.filter(m => !installedModels.includes(m));
+        const missingModels = project.targetModels.filter(target => {
+            const targetLower = target.toLowerCase();
+            return !installedModels.some(installed => {
+                const installedLower = installed.toLowerCase();
+                return installedLower === targetLower || installedLower === `${targetLower}:latest`;
+            });
+        });
+
         if (missingModels.length > 0) {
             console.log(chalk.red(`Error: The following configured models are not installed in this system: ${missingModels.join(", ")}`));
             return;

@@ -41,6 +41,21 @@ const Dashboard = () => {
                 setStatus("Checking runtime...");
                 const healthy = await runtime.checkHealth();
                 setIsHealthy(healthy);
+                let errorMsg = null;
+                if (healthy) {
+                    const installedModels = await runtime.listModels();
+                    const missingModels = activeProject.targetModels.filter(target => {
+                        const targetLower = target.toLowerCase();
+                        const isInstalled = installedModels.some(installed => {
+                            const installedLower = installed.toLowerCase();
+                            return installedLower === targetLower || installedLower === `${targetLower}:latest`;
+                        });
+                        return !isInstalled;
+                    });
+                    if (missingModels.length > 0) {
+                        errorMsg = `Error: Models not installed: ${missingModels.join(", ")}`;
+                    }
+                }
                 setStatus("Loading context...");
                 const skills = await sl.listSkills(activeProject);
                 const prompts = await prm.listPrompts(activeProject);
@@ -49,7 +64,7 @@ const Dashboard = () => {
                 setStatus("Running prediction...");
                 const preds = pe.predictModels({ project: activeProject, skills, prompts });
                 setPredictions(preds);
-                setStatus("Ready.");
+                setStatus(errorMsg || "Ready.");
             }
             else {
                 setStatus("No active project. Use 'wakem project use <name>'.");
@@ -57,9 +72,19 @@ const Dashboard = () => {
         };
         loadContext();
     }, []);
-    useInput((input) => {
-        if (input === "q" || input === "Q") {
+    useInput((input, key) => {
+        const cmd = input.toLowerCase();
+        if (cmd === "q" || key.escape) {
             exit();
+        }
+        if (cmd === "w") {
+            setStatus("Warm started.");
+        }
+        if (cmd === "p") {
+            setStatus("Refreshing prompts...");
+        }
+        if (cmd === "s") {
+            setStatus("Refreshing skills...");
         }
     });
     return (React.createElement(Box, { flexDirection: "column", padding: 1 },
@@ -94,6 +119,7 @@ const Dashboard = () => {
         React.createElement(Box, { marginTop: 1 },
             React.createElement(Text, { dimColor: true }, "[W] Warm model   [P] Prompts   [S] Skills   [Q] Quit"))));
 };
-export const runInteractiveMode = () => {
-    render(React.createElement(Dashboard, null));
+export const runInteractiveMode = async () => {
+    const { waitUntilExit } = render(React.createElement(Dashboard, null));
+    await waitUntilExit();
 };

@@ -1,15 +1,26 @@
 import * as path from "path";
+import * as os from "os";
 import { FileStorageService } from "../storage/StorageService.js";
 export class SkillLoaderImpl {
     storage = new FileStorageService();
+    wakemDir = path.join(os.homedir(), ".wakem");
+    resolvePath(p) {
+        if (path.isAbsolute(p)) {
+            return p;
+        }
+        return path.join(this.wakemDir, p);
+    }
     async listSkills(project) {
         const skills = [];
         if (project.skillPath) {
             skills.push(...(await this.discoverSkillsInPath(project.skillPath)));
         }
         if (project.sourcePath) {
+            // Check .wakem/skills
             const internalPath = path.join(project.sourcePath, ".wakem", "skills");
             skills.push(...(await this.discoverSkillsInPath(internalPath)));
+            // Check sourcePath directly for .md files
+            skills.push(...(await this.discoverSkillsInPath(project.sourcePath)));
         }
         // De-duplicate by name
         const uniqueSkills = new Map();
@@ -33,9 +44,10 @@ export class SkillLoaderImpl {
         return null;
     }
     async discoverSkillsInPath(dirPath) {
-        if (!(await this.storage.exists(dirPath)))
+        const resolvedPath = this.resolvePath(dirPath);
+        if (!(await this.storage.exists(resolvedPath)))
             return [];
-        const files = await this.storage.list(dirPath);
+        const files = await this.storage.list(resolvedPath);
         const skills = [];
         for (const filePath of files) {
             if (filePath.endsWith(".md")) {
@@ -51,7 +63,8 @@ export class SkillLoaderImpl {
         return skills;
     }
     async loadSkillFromPath(dirPath, name) {
-        const filePath = path.join(dirPath, `${name}.md`);
+        const resolvedPath = this.resolvePath(dirPath);
+        const filePath = path.join(resolvedPath, `${name}.md`);
         const content = await this.storage.load(filePath);
         if (content === null)
             return null;

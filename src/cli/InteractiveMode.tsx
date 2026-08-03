@@ -56,7 +56,15 @@ const Dashboard = () => {
                 let errorMsg = null;
                 if (healthy) {
                     const installedModels = await runtime.listModels();
-                    const missingModels = activeProject.targetModels.filter(m => !installedModels.includes(m));
+                    const missingModels = activeProject.targetModels.filter(target => {
+                        const targetLower = target.toLowerCase();
+                        const isInstalled = installedModels.some(installed => {
+                            const installedLower = installed.toLowerCase();
+                            return installedLower === targetLower || installedLower === `${targetLower}:latest`;
+                        });
+                        return !isInstalled;
+                    });
+
                     if (missingModels.length > 0) {
                         errorMsg = `Error: Models not installed: ${missingModels.join(", ")}`;
                     }

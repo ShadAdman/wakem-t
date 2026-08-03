@@ -172,6 +172,19 @@ export const warmHandler = {
         const predictions = pe.predictModels(context);
         const runtime = new OllamaRuntime(config.ollamaUrl);
         const orchestrator = new WarmupOrchestratorImpl(runtime);
+        // Check if models are installed
+        const installedModels = await runtime.listModels();
+        const missingModels = project.targetModels.filter(target => {
+            const targetLower = target.toLowerCase();
+            return !installedModels.some(installed => {
+                const installedLower = installed.toLowerCase();
+                return installedLower === targetLower || installedLower === `${targetLower}:latest`;
+            });
+        });
+        if (missingModels.length > 0) {
+            console.log(chalk.red(`Error: The following configured models are not installed in this system: ${missingModels.join(", ")}`));
+            return;
+        }
         const plan = {
             id: `warm_${Date.now()}`,
             projectId: project.id,

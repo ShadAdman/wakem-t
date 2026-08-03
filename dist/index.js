@@ -26,8 +26,8 @@ program.command("warm").description("Trigger manual warmup").action(warmHandler.
 // Interactive mode when no arguments
 if (process.argv.length === 2) {
     // Import dynamically to avoid loading React/Ink unnecessarily for simple CLI commands
-    import("./cli/InteractiveMode.js").then(({ runInteractiveMode }) => {
-        runInteractiveMode();
+    import("./cli/InteractiveMode.js").then(async ({ runInteractiveMode }) => {
+        await runInteractiveMode();
     });
 }
 else {
